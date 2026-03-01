@@ -1,0 +1,20 @@
+package com.xdcoder.authApp.dtos;
+
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
+public record ApiError(
+        Integer status,
+        String error,
+        String message,
+        String path,
+        OffsetDateTime timestamp
+) {
+    public static ApiError of(int status, String error, String message, String path) {
+        return new ApiError(status, error, message, path, OffsetDateTime.now(ZoneOffset.UTC));
+    }
+
+    public static ApiError of(int status, String error, String message, String path,boolean noDateTime) {
+        return new ApiError(status, error, message, path, null);
+    }
+}

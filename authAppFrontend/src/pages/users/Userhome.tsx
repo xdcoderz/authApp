@@ -8,7 +8,13 @@ import { useState } from "react";
 import type UserT from "@/models/User";
 import toast from "react-hot-toast";
 
-/* Reuse Google icon (same as Login page) */
+/*
+ * GoogleIcon
+ *
+ * Custom SVG icon used to represent Google as an OAuth provider.
+ * This is reused from the login page to keep the UI consistent
+ * across the application.
+ */
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 48 48" {...props}>
@@ -32,24 +38,53 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+/*
+ * Userhome Component
+ *
+ * Dashboard page displayed after a user logs in.
+ * It shows basic account information such as:
+ * - Authentication provider
+ * - Account status
+ * - Session information
+ *
+ * It also demonstrates how to fetch the current user's
+ * data from the backend API.
+ */
 export default function Userhome() {
 
+  // Get logged-in user from global auth store (Zustand)
   const user = useAuth((state) => state.user);
+
+  // Local state to store fetched user data
   const [user1, setUser1] = useState<UserT | null>(null);
-  const getUserData = async() => {
+
+  /*
+   * getUserData
+   *
+   * Calls backend API to fetch the latest user information
+   * based on the user's email.
+   */
+  const getUserData = async () => {
     try {
-      const user1  = await getCurrentUser(user?.email)
+
+      const user1 = await getCurrentUser(user?.email);
+
       setUser1(user1);
-      toast.success("User data fetched successfully")
+
+      toast.success("User data fetched successfully");
+
     } catch (error) {
-      console.log(error)
-      toast.error("Failed to fetch user data")
+
+      console.log(error);
+
+      toast.error("Failed to fetch user data");
     }
-  }
+  };
 
 
   return (
     <div className="min-h-screen bg-background text-foreground px-6 py-10">
+
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -60,36 +95,48 @@ export default function Userhome() {
         <h1 className="text-3xl font-extrabold tracking-tight">
           Welcome, {user?.name ?? "User"} 👋
         </h1>
+
         <p className="text-muted-foreground mt-2">
           This is your secure dashboard overview
         </p>
       </motion.div>
 
-      {/* Stats Grid */}
+
+      {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+
         <StatCard
           icon={<User />}
           title="Account Type"
           value={user?.provider ?? "LOCAL"}
         />
+
         <StatCard
           icon={<ShieldCheck />}
           title="Account Status"
           value={user?.enable ? "Active" : "Disabled"}
         />
+
         <StatCard
           icon={<Clock />}
           title="Session"
           value="Valid"
         />
+
       </div>
 
-      {/* OAuth Providers */}
+
+      {/* OAuth Provider Information */}
       <Card className="rounded-3xl bg-background/60 backdrop-blur-xl border shadow-xl">
+
         <CardContent className="p-8 space-y-6">
-          <h2 className="text-xl font-semibold">Authentication Providers</h2>
+
+          <h2 className="text-xl font-semibold">
+            Authentication Providers
+          </h2>
 
           <div className="flex flex-wrap gap-6">
+
             <OAuthBadge
               label="Local"
               active={user?.provider === "LOCAL"}
@@ -111,6 +158,7 @@ export default function Userhome() {
               active={user?.provider === "GITHUB"}
               icon={<Github className="h-8 w-8" />}
             />
+
           </div>
 
           <p className="text-sm text-muted-foreground">
@@ -119,31 +167,59 @@ export default function Userhome() {
               {user?.provider ?? "LOCAL"}
             </span>
           </p>
+
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl bg-background/60 backdrop-blur-xl border shadow-xl">
-        <CardContent className="p-8 space-y-6">
-          <Button onClick = {getUserData} className = "rounded-2xl px-8 text-lg">Get current user</Button>
-          <p>{user1 ? `User: ${user1.name}` : "No user data available"}</p>
-          </CardContent>
-          </Card>
 
-      {/* Dummy Action */}
+      {/* API Demo Section */}
+      <Card className="rounded-3xl bg-background/60 backdrop-blur-xl border shadow-xl">
+
+        <CardContent className="p-8 space-y-6">
+
+          {/* Fetch user data from backend */}
+          <Button
+            onClick={getUserData}
+            className="rounded-2xl px-8 text-lg"
+          >
+            Get current user
+          </Button>
+
+          {/* Display fetched user data */}
+          <p>
+            {user1 ? `User: ${user1.name}` : "No user data available"}
+          </p>
+
+        </CardContent>
+
+      </Card>
+
+
+      {/* Example Actions */}
       <div className="mt-10 flex gap-4">
+
         <Button variant="outline" className="rounded-full">
           View Profile
         </Button>
+
         <Button className="rounded-full">
           Manage Security
         </Button>
+
       </div>
+
     </div>
   );
 }
 
-/* ------------------- Components ------------------- */
 
+/* ------------------- Helper Components ------------------- */
+
+/*
+ * StatCard
+ *
+ * Small reusable card used to display dashboard statistics.
+ */
 function StatCard({
   icon,
   title,
@@ -153,21 +229,39 @@ function StatCard({
   title: string;
   value: string;
 }) {
+
   return (
     <Card className="rounded-3xl bg-background/60 backdrop-blur-xl border shadow-lg">
+
       <CardContent className="p-6 flex items-center gap-4">
+
         <div className="h-12 w-12 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
           {icon}
         </div>
+
         <div>
-          <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-lg font-semibold">{value}</p>
+          <p className="text-sm text-muted-foreground">
+            {title}
+          </p>
+
+          <p className="text-lg font-semibold">
+            {value}
+          </p>
         </div>
+
       </CardContent>
+
     </Card>
   );
 }
 
+
+/*
+ * OAuthBadge
+ *
+ * UI component used to display which authentication
+ * provider the user used (Local / Google / GitHub).
+ */
 function OAuthBadge({
   icon,
   label,
@@ -177,6 +271,7 @@ function OAuthBadge({
   label: string;
   active: boolean;
 }) {
+
   return (
     <div
       className={`flex flex-col items-center gap-2 px-5 py-4 rounded-2xl border transition-all
@@ -186,13 +281,19 @@ function OAuthBadge({
           : "bg-background/40 border-border"
       }`}
     >
+
       {icon}
-      <span className="text-sm">{label}</span>
+
+      <span className="text-sm">
+        {label}
+      </span>
+
       {active && (
         <span className="text-[10px] uppercase tracking-wide text-primary">
           Active
         </span>
       )}
+
     </div>
   );
 }

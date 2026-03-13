@@ -14,98 +14,148 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/*
+ * JwtAuthenticationFilter
+ *
+ * This filter runs for every incoming request and checks whether the request
+ * contains a valid JWT access token.
+ *
+ * If a valid token is found:
+ * 1. The token is parsed and validated.
+ * 2. The user is fetched from the database.
+ * 3. A Spring Security Authentication object is created.
+ * 4. The authentication is stored in the SecurityContext.
+ *
+ * Once the SecurityContext contains authentication, Spring Security treats
+ * the request as authenticated and allows access to protected endpoints.
+ */
 @Component
 @RequiredArgsConstructor
-
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // Service responsible for parsing and validating JWT tokens
     private final JWTService jwtService;
+
+    // Repository used to fetch user information
     private final UserRepository userRepository;
+
+    // Logger for debugging authentication flow
     private Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
+        // Read Authorization header from the request
         String header = request.getHeader("Authorization");
         logger.info("Authorization header: {}", header);
 
+        // Check if the header contains a Bearer token
+        if (header != null && header.startsWith("Bearer ")) {
 
-        if(header != null && header.startsWith("Bearer ")) {
-
+            // Extract token after "Bearer "
             String token = header.substring(7);
-            // Here you can add logic to validate the token and set authentication in the security context
-            try{
 
+            try {
+
+                // Parse the token using JWTService
                 Jws<Claims> parse = jwtService.parse(token);
-
-
-
                 Claims payLoad = parse.getPayload();
 
-                //check for access token
-                if(!jwtService.isAccessToken(token)){
-                    //message pass karna hai
+                // Ensure the token is an access token (not refresh token)
+                if (!jwtService.isAccessToken(token)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
 
+                // Extract user ID stored inside JWT subject
                 String userId = payLoad.getSubject();
-                UUID userUuiD = UserHelper.parseUUID(userId);
-                userRepository.findById(userUuiD)
+                UUID userUUID = UserHelper.parseUUID(userId);
 
-                        .ifPresent(user ->{
-                            //check for user enable or not
-                            if(user.isEnable()){
+                // Fetch user from database
+                userRepository.findById(userUUID)
+                        .ifPresent(user -> {
 
+                            // Only authenticate if the user account is enabled
+                            if (user.isEnable()) {
 
-                                //user mil chuka hai database se, ab hume uske roles nikalne hai aur authentication object create karna hai
-                                List<GrantedAuthority> authorities = user.getRoles() == null ? List.of(): user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
+                                /*
+                                 * Convert user roles into Spring Security authorities.
+                                 * Authorities represent permissions used during authorization.
+                                 */
+                                List<GrantedAuthority> authorities =
+                                        user.getRoles() == null
+                                                ? List.of()
+                                                : user.getRoles()
+                                                .stream()
+                                                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                                                .collect(Collectors.toList());
 
-                                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                                        user.getEmail(),
-                                        null,
-                                        authorities
+                                /*
+                                 * Create authentication object for Spring Security.
+                                 * Principal = user email
+                                 * Credentials = null (already authenticated via JWT)
+                                 */
+                                UsernamePasswordAuthenticationToken authentication =
+                                        new UsernamePasswordAuthenticationToken(
+                                                user.getEmail(),
+                                                null,
+                                                authorities
+                                        );
+
+                                // Attach request details (IP, session info, etc.)
+                                authentication.setDetails(
+                                        new WebAuthenticationDetailsSource().buildDetails(request)
                                 );
 
-                                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                                //final line: set the authentication in the security context
-                                if(SecurityContextHolder.getContext().getAuthentication() == null)
+                                /*
+                                 * Store authentication in SecurityContext.
+                                 * After this step the request becomes authenticated
+                                 * for the rest of the Spring Security pipeline.
+                                 */
+                                if (SecurityContextHolder.getContext().getAuthentication() == null) {
                                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                                }
                             }
+                        });
 
+            } catch (ExpiredJwtException e) {
 
-
-
-
-            });
-
-
-            }catch(ExpiredJwtException e){
+                // Token is valid but expired
                 request.setAttribute("error", "Token Expired");
-                //e.printStackTrace();
 
-            } catch (Exception e){
+            } catch (Exception e) {
+
+                // Token is malformed or invalid
                 request.setAttribute("error", "Invalid Token");
-                //e.printStackTrace();
             }
         }
 
+        // Continue the filter chain
         filterChain.doFilter(request, response);
     }
 
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException{
-        return request.getRequestURI().startsWith("/api/v1/auth/login") || request.getRequestURI().startsWith("/api/v1/auth/register");
-    }
 
+    /*
+     * Skip JWT filtering for public authentication endpoints.
+     *
+     * These endpoints must remain accessible without authentication:
+     * - login
+     * - register
+     */
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return request.getRequestURI().startsWith("/api/v1/auth/login")
+                || request.getRequestURI().startsWith("/api/v1/auth/register");
+    }
 }

@@ -1,6 +1,9 @@
 package com.xdcoder.authApp.services.Impl;
 
+import com.xdcoder.authApp.config.AppConstants;
 import com.xdcoder.authApp.dtos.UserDto;
+import com.xdcoder.authApp.entities.Role;
+import com.xdcoder.authApp.repositories.RoleRepository;
 import com.xdcoder.authApp.services.AuthService;
 import com.xdcoder.authApp.services.UserService;
 import lombok.AllArgsConstructor;
@@ -14,6 +17,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+
 
     @Override
     public UserDto registerUser(UserDto userDto){

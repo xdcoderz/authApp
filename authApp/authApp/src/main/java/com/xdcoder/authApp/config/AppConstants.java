@@ -8,4 +8,7 @@ public class AppConstants {
             "/swagger-ui/**",
             "/swagger-ui.html"
     };
+
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_USER = "USER";
 }

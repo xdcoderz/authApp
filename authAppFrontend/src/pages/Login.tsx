@@ -6,40 +6,60 @@ import { Mail, Lock, Github, CheckCircle2Icon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, type FormEvent } from "react";
 import type LoginData from "@/models/LoginData";
-import { data, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
-import { loginUser } from "@/services/AuthService";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import useAuth from "@/auth/store";
+import OAuth2Buttons from "@/components/OAuth2Buttons";
 
-function GoogleIcon(props) {
-  return (
-    <svg viewBox="0 0 48 48" {...props}>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.6 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.2l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 19-8.9 19-20c0-1.1-.1-2.3-.4-3.5z"/>
-      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16.1 19 12 24 12c3.1 0 5.9 1.2 8 3.2l5.7-5.7C34.1 6.1 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
-      <path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.3l-6.3-5.2C29.3 35.5 26.7 36 24 36c-5.3 0-9.7-3.4-11.3-8.1l-6.5 5C9.4 39.7 16.2 44 24 44z"/>
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.1 3-3.4 5.5-6.3 6.8l6.3 5.2C39.3 36.4 43 30.9 43 24c0-1.1-.1-2.3-.4-3.5z"/>
-    </svg>
-  );
-}
-
+/*
+ * Login Component
+ *
+ * This page handles user authentication using email and password.
+ * It connects the login form with the global auth state (Zustand store).
+ *
+ * Main responsibilities:
+ * - Collect login credentials
+ * - Validate inputs
+ * - Call backend login API through auth store
+ * - Handle loading and error states
+ * - Redirect user to dashboard after successful login
+ */
 export default function Login() {
-  const [loginData, setLoginData] = useState<LoginData>({
-    
-    email:"",
-    password:"",
 
+  /*
+   * Local state storing login form data.
+   * This object matches the LoginData model used by the backend API.
+   */
+  const [loginData, setLoginData] = useState<LoginData>({
+    email: "",
+    password: "",
   });
 
+  // Indicates whether login request is currently processing
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Stores error returned from server
   const [error, setError] = useState<any>(null);
 
+  // React Router navigation hook
   const navigate = useNavigate();
 
+  /*
+   * Access login function from global auth store.
+   * This function internally calls the login API
+   * and updates the global authentication state.
+   */
   const login = useAuth((state) => state.login);
 
-  const handleInputChange = (event:React.ChangeEvent<HTMLInputElement>) => {
+  /*
+   * handleInputChange
+   *
+   * Updates form state whenever user types in
+   * email or password input fields.
+   */
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 
     setLoginData({
       ...loginData,
@@ -48,98 +68,129 @@ export default function Login() {
 
   };
 
-  const handleFormSubmit= async(event:FormEvent) =>{
+  /*
+   * handleFormSubmit
+   *
+   * Triggered when the login form is submitted.
+   *
+   * Steps:
+   * 1. Prevent default form submission
+   * 2. Validate user inputs
+   * 3. Call login API through auth store
+   * 4. Redirect user after success
+   */
+  const handleFormSubmit = async (event: FormEvent) => {
+
     event.preventDefault();
-    
-    //validation 
-    if(loginData.email.trim() ===''){
+
+    // Basic input validation
+    if (loginData.email.trim() === '') {
       toast.error("Email required!");
       return;
     }
-    if(loginData.password.trim() ===''){
+
+    if (loginData.password.trim() === '') {
       toast.error("Password required!");
       return;
     }
 
-    //server call for login
-    // console.log(event.target);
-    // console.log(loginData);
     try {
-      setLoading(true);
-      // const userInfo = await loginUser(loginData);
 
-      //login function : useAuth
+      setLoading(true);
+
+      // Call login function from auth store
       await login(loginData);
 
       toast.success("Login Success");
-      // console.log(userInfo);
-      navigate('/dashboard')
-    //save the current user logged in authentication 
-    //local storage 
 
+      // Redirect to dashboard after successful login
+      navigate('/dashboard');
 
-    } catch (error:any) {
+    } catch (error: any) {
+
       console.log(error);
+
       setError(error);
+
       toast.error("Error in Login!");
-      if(error?.status == 400){
+
+      // Display server error message
+      if (error?.status == 400) {
         setError(error);
-      }else{
+      } else {
         setError(error);
       }
-    }finally{
+
+    } finally {
+
       setLoading(false);
+
     }
 
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background text-foreground relative overflow-hidden px-4">
-      {/* Background Glow */}
+
+      {/* Decorative background glow effect */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.35),_transparent_60%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_hsl(var(--secondary)/0.25),_transparent_65%)]" />
       </div>
 
+      {/* Animated login card container */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
         className="w-full max-w-md"
       >
+
         <Card className="rounded-3xl border bg-background/70 backdrop-blur-xl shadow-2xl">
+
           <CardContent className="p-10">
-            {/* Heading */}
+
+            {/* Page Heading */}
             <div className="text-center mb-10">
+
               <h1 className="text-3xl font-extrabold tracking-tight">
                 Welcome Back
               </h1>
+
               <p className="mt-3 text-muted-foreground">
                 Login in to continue to your secure app
               </p>
 
-              
-
             </div>
-            {/* error section */}
+
+            {/* Error Message Section */}
             {error && (
               <div className="mb-4">
                 <Alert variant={"destructive"}>
-                  <CheckCircle2Icon/>
+                  <CheckCircle2Icon />
+
                   <AlertTitle>
-                    {error?.response? 
-                    error?.response?.data?.message 
-                    : error?.message}  </AlertTitle>
+                    {error?.response
+                      ? error?.response?.data?.message
+                      : error?.message}
+                  </AlertTitle>
+
                 </Alert>
               </div>
             )}
 
             {/* Login Form */}
             <form onSubmit={handleFormSubmit} className="space-y-6">
+
+              {/* Email Field */}
               <div className="space-y-2">
+
                 <Label htmlFor="email">Email</Label>
+
                 <div className="relative">
+
                   <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+
                   <Input
                     id="email"
                     type="email"
@@ -149,13 +200,21 @@ export default function Login() {
                     value={loginData.email}
                     onChange={handleInputChange}
                   />
+
                 </div>
+
               </div>
 
+
+              {/* Password Field */}
               <div className="space-y-2">
+
                 <Label htmlFor="password">Password</Label>
+
                 <div className="relative">
+
                   <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+
                   <Input
                     id="password"
                     type="password"
@@ -165,63 +224,78 @@ export default function Login() {
                     value={loginData.password}
                     onChange={handleInputChange}
                   />
+
                 </div>
+
               </div>
 
+
+              {/* Forgot password link */}
               <div className="flex items-center justify-between text-sm">
+
                 <a href="#" className="text-primary hover:underline">
                   Forgot password?
                 </a>
+
               </div>
 
-              <Button disabled={loading} className="w-full cursor-pointer rounded-full text-lg py-6">
-                {loading ? (<><Spinner/> 
-                Please wait...</>
-                  ) : ( "Login")}
-                
+
+              {/* Submit Button */}
+              <Button
+                disabled={loading}
+                className="w-full cursor-pointer rounded-full text-lg py-6"
+              >
+
+                {loading
+                  ? (
+                    <>
+                      <Spinner />
+                      Please wait...
+                    </>
+                  )
+                  : "Login"
+                }
+
               </Button>
+
             </form>
 
-            {/* Divider */}
+
+            {/* Divider between login and OAuth */}
             <div className="my-8 flex items-center gap-4">
+
               <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted-foreground">OR</span>
+
+              <span className="text-xs text-muted-foreground">
+                OR
+              </span>
+
               <div className="h-px flex-1 bg-border" />
+
             </div>
 
-            {/* OAuth Buttons */}
-            <div className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full rounded-full py-6 text-base"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <GoogleIcon className="h-5 w-5" />
-                  <span>Continue with Google</span>
-                </div>
-              </Button>
 
-              <Button
-                variant="outline"
-                className="w-full rounded-full py-6 text-base"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <Github className="h-5 w-5" />
-                  <span>Continue with GitHub</span>
-                </div>
-              </Button>
-            </div>
+            {/* OAuth login buttons (Google / GitHub) */}
+            <OAuth2Buttons />
 
-            {/* Footer */}
+
+            {/* Signup Footer */}
             <p className="mt-10 text-center text-sm text-muted-foreground">
+
               Don’t have an account?{" "}
+
               <a href="#" className="text-primary hover:underline">
                 Sign up
               </a>
+
             </p>
+
           </CardContent>
+
         </Card>
+
       </motion.div>
+
     </div>
   );
 }

@@ -20,7 +20,12 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import useAuth from "@/auth/store";
 
-/* Google Icon */
+/*
+ * GoogleIcon
+ *
+ * Small SVG icon used to visually represent the Google OAuth provider.
+ * This is shown when a user logged in using Google authentication.
+ */
 function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 48 48" {...props}>
@@ -32,27 +37,60 @@ function GoogleIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+/*
+ * UserProfile Component
+ *
+ * Displays the profile page for the currently authenticated user.
+ * The data is pulled from the global auth store (Zustand).
+ *
+ * Features:
+ * - View profile information
+ * - Edit name and avatar locally
+ * - Shows authentication provider
+ * - Displays account metadata like creation time
+ */
 export default function UserProfile() {
+
+  // Get current logged-in user from global auth store
   const user = useAuth((state) => state.user);
 
+  // Controls whether the profile is in edit mode
   const [editMode, setEditMode] = useState(false);
+
+  // Reference for hidden file input (used for avatar upload)
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /*
+   * Local form state for editable fields.
+   * Initially filled with values from the user object.
+   */
   const [form, setForm] = useState({
     name: user?.name ?? "",
     image: user?.image ?? "",
   });
 
+  /*
+   * Handles changes in text inputs (e.g. name field)
+   */
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /*
+   * Handles avatar image change.
+   * Currently creates a temporary preview URL.
+   * In a real system this would upload the file to the backend.
+   */
   const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setForm({ ...form, image: URL.createObjectURL(file) });
   };
 
+  /*
+   * Cancel editing and restore original user data.
+   */
   const cancelEdit = () => {
     setEditMode(false);
     setForm({
@@ -61,17 +99,27 @@ export default function UserProfile() {
     });
   };
 
+  /*
+   * Save profile changes.
+   *
+   * TODO:
+   * This should call a backend API like:
+   * PATCH /api/v1/users/me
+   */
   const saveChanges = () => {
     setEditMode(false);
     // 🔜 Backend PATCH /users/me
   };
 
+  // Prevent rendering if user is not available
   if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
-      {/* Header */}
+
+      {/* Page Header */}
       <div className="mb-10 flex justify-between items-center">
+
         <div>
           <h1 className="text-3xl font-bold">User Profile</h1>
           <p className="text-muted-foreground">
@@ -79,34 +127,48 @@ export default function UserProfile() {
           </p>
         </div>
 
+        {/* Toggle edit mode */}
         {!editMode ? (
           <Button onClick={() => setEditMode(true)} className="gap-2">
             <Pencil size={16} /> Edit Profile
           </Button>
         ) : (
           <div className="flex gap-2">
+
             <Button variant="outline" onClick={cancelEdit}>
               <X size={16} /> Cancel
             </Button>
+
             <Button onClick={saveChanges}>
               <Save size={16} /> Save
             </Button>
+
           </div>
         )}
       </div>
 
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
         {/* Profile Card */}
         <Card className="rounded-3xl">
+
           <CardContent className="p-8 flex flex-col items-center gap-6">
+
+            {/* Avatar */}
             <div className="relative group">
+
               <Avatar className="h-32 w-32">
+
                 <AvatarImage src={form.image} />
+
                 <AvatarFallback>
                   {user.name?.charAt(0) ?? "U"}
                 </AvatarFallback>
+
               </Avatar>
 
+              {/* Avatar upload overlay (visible in edit mode) */}
               {editMode && (
                 <button
                   onClick={() => fileRef.current?.click()}
@@ -123,8 +185,10 @@ export default function UserProfile() {
                 accept="image/*"
                 onChange={onAvatarChange}
               />
+
             </div>
 
+            {/* Editable name field */}
             {editMode ? (
               <Input
                 name="name"
@@ -138,14 +202,21 @@ export default function UserProfile() {
               </h2>
             )}
 
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            {/* Email */}
+            <p className="text-sm text-muted-foreground">
+              {user.email}
+            </p>
+
           </CardContent>
         </Card>
 
-        {/* Details */}
+
+        {/* Details Section */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Account Info */}
+
+          {/* Account Information */}
           <Section title="Account Information">
+
             <StaticRow
               icon={<Mail />}
               label="Email"
@@ -172,10 +243,13 @@ export default function UserProfile() {
               label="Account Status"
               value={user.enabled ? "Enabled" : "Disabled"}
             />
+
           </Section>
 
-          {/* Metadata */}
+
+          {/* Activity Metadata */}
           <Section title="Activity">
+
             <StaticRow
               icon={<Calendar />}
               label="Account Created"
@@ -195,15 +269,21 @@ export default function UserProfile() {
                   : "—"
               }
             />
+
           </Section>
+
         </div>
       </div>
     </div>
   );
 }
 
-/* Reusable Components */
 
+/*
+ * Section Component
+ *
+ * Reusable wrapper for grouped profile information.
+ */
 function Section({ title, children }: any) {
   return (
     <Card>
@@ -215,19 +295,38 @@ function Section({ title, children }: any) {
   );
 }
 
+
+/*
+ * StaticRow Component
+ *
+ * Displays a single labeled field inside profile sections.
+ * Used for read-only information like email or provider.
+ */
 function StaticRow({ icon, label, value, extra }: any) {
   return (
     <div className="flex items-center justify-between">
+
       <div className="flex gap-4 items-center">
+
         <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center">
           {icon}
         </div>
+
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="font-medium">{value}</p>
+          <p className="text-sm text-muted-foreground">
+            {label}
+          </p>
+
+          <p className="font-medium">
+            {value}
+          </p>
         </div>
+
       </div>
+
+      {/* Optional extra element (icon, badge, etc.) */}
       {extra}
+
     </div>
   );
 }

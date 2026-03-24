@@ -7,11 +7,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -42,6 +44,7 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     // Custom JWT filter used to validate JWT tokens on each request
@@ -77,6 +80,8 @@ public class SecurityConfig {
                                 // Public authentication endpoints
                                 .requestMatchers(AppConstants.AUTH_PUBLIC_URLS).permitAll()
                                 // All other endpoints require authentication
+                                .requestMatchers(HttpMethod.GET).hasRole(AppConstants.ROLE_USER)
+                                .requestMatchers("/api/v1/users/**").hasRole(AppConstants.ROLE_ADMIN)
                                 .anyRequest().authenticated()
                 )
 
@@ -117,6 +122,19 @@ public class SecurityConfig {
                             var objectMapper = new ObjectMapper();
                             response.getWriter().write(objectMapper.writeValueAsString(apiError));
                         })
+                                .accessDeniedHandler((request, response, e) -> {
+                                    response.setStatus(403);
+                                    response.setContentType("application/json");
+                                    String message = e.getMessage();
+                                    String error = (String) request.getAttribute("error");
+                                    if(error !=null){
+                                        message = error;
+                                    }
+                                    var apiError = ApiError.of(HttpStatus.FORBIDDEN.value(), "Forbidden Access", message, request.getRequestURI(), true);
+                                    var objectMapper = new ObjectMapper();
+                                    response.getWriter().write(objectMapper.writeValueAsString(apiError));
+
+                                })
                 )
 
                 // Add custom JWT filter before default Spring login filter

@@ -1,10 +1,12 @@
 package com.xdcoder.authApp.controllers;
 
+import com.xdcoder.authApp.config.AppConstants;
 import com.xdcoder.authApp.dtos.UserDto;
 import com.xdcoder.authApp.services.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /*
@@ -72,6 +74,7 @@ public class UserController {
     // Get User By ID API
     // GET /api/v1/users/{userId}
     // Retrieves a specific user using their unique identifier
+    @PreAuthorize("hasRole('" + AppConstants.ROLE_ADMIN + "')")
     @GetMapping("/{userId}")
     public ResponseEntity<UserDto> getUserById(@PathVariable("userId") String userId) {
         return ResponseEntity.ok(userService.getUserById(userId));

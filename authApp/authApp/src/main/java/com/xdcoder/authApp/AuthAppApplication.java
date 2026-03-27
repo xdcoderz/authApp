@@ -1,8 +1,8 @@
 package com.xdcoder.authApp;
 
-import com.xdcoder.authApp.config.AppConstants;
-import com.xdcoder.authApp.entities.Role;
-import com.xdcoder.authApp.repositories.RoleRepository;
+import com.xdcoder.authApp.auth.config.AppConstants;
+import com.xdcoder.authApp.auth.entities.Role;
+import com.xdcoder.authApp.auth.repositories.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
